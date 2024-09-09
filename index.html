@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full-Page Leaflet Map with Dynamic Location Information</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .custom-popup .leaflet-popup-content-wrapper {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            border-radius: 8px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+            padding: 0;
+            overflow: hidden;
+        }
+        .custom-popup .leaflet-popup-content {
+            margin: 0;
+            max-width: 300px;
+        }
+        .custom-popup .leaflet-popup-tip {
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .popup-content {
+            padding: 20px;
+            position: relative;
+        }
+        .custom-popup h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .custom-popup h4 {
+            color: #2980b9;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        .custom-popup p {
+            margin-bottom: 10px;
+        }
+        .custom-popup button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .custom-popup button:hover {
+            background-color: #2980b9;
+        }
+        .coordinates {
+            font-family: 'Courier New', monospace;
+            background-color: #ecf0f1;
+            padding: 5px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        #location-info {
+            min-height: 100px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .loading {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        var map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        function onMapClick(e) {
+            if (confirm("Do you want to know the climatic aspects of this location?")) {
+                map.setView(e.latlng, 10);  // Zoom in to the clicked location
+
+                // Fetch the location name using reverse geocoding
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        var locationName = data.display_name || "Unknown Location";
+
+                        var popup = L.popup({className: 'custom-popup', maxWidth: 300})
+                            .setLatLng(e.latlng)
+                            .setContent(`
+                                <div class="popup-content">
+                                    <h3>Location Information</h3>
+                                    <p>Location: <span class="coordinates">${locationName}</span></p>
+                                    <div id="location-info">
+                                        <p class="loading">Loading location information...</p>
+                                    </div>
+                                    <h4>Temperature Query</h4>
+                                    <p>Would you like to know the temperature of this location next year?</p>
+                                    <button onclick="submitTemperatureQuery(${e.latlng.lat}, ${e.latlng.lng})">Yes, tell me!</button>
+                                </div>
+                            `)
+                            .openOn(map);
+
+                        // Simulate loading data
+                        setTimeout(() => {
+                            document.getElementById('location-info').innerHTML = `
+                                <p>This area has been experiencing significant developments in renewable energy. 
+                                Recent initiatives include the construction of a large solar farm and increased 
+                                investment in wind power infrastructure. Local authorities are also implementing 
+                                new policies to reduce carbon emissions and promote sustainable urban planning.</p>
+                            `;
+                        }, 1500);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching location name:', error);
+                    });
+            }
+        }
+
+        map.on('click', onMapClick);
+
+        function submitTemperatureQuery(lat, lng) {
+            var predictedTemp = Math.round(Math.random() * 30 + 10); // Random temp between 10 and 40 celsius
+            var queryResult = `The predicted temperature for location (${lat.toFixed(2)}, ${lng.toFixed(2)}) next year is ${predictedTemp}°C`;
+            
+            alert(queryResult);
+            logQuery(lat, lng, predictedTemp);
+        }
+
+        function logQuery(lat, lng, temp) {
+            var logEntry = {
+                timestamp: new Date().toISOString(),
+                latitude: lat,
+                longitude: lng,
+                predictedTemperature: temp
+            };
+
+            var log = JSON.parse(localStorage.getItem('temperatureLog')) || [];
+            log.push(logEntry);
+            localStorage.setItem('temperatureLog', JSON.stringify(log));
+            console.log('Query logged:', logEntry);
+        }
+    </script>
+</body>
+</html>
